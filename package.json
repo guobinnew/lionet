@@ -1,0 +1,33 @@
+{
+  "name": "orion-lionet",
+  "version": "1.0.0",
+  "description": "based-component state machine engine， suitable for games and simulation",
+  "main": "dist/lionet.js",
+  "scripts": {
+    "build": "./node_modules/.bin/webpack --config ./build/webpack.config.js"
+  },
+  "dependencies": {
+    "blob-util": "^2.0.2",
+    "lodash": "^4.17.11",
+    "string-hash": "^1.1.3",
+    "uniqid": "^5.0.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "@babel/preset-env": "^7.3.1",
+    "babel-loader": "^8.0.5",
+    "clean-webpack-plugin": "^1.0.1",
+    "copy-webpack-plugin": "^4.6.0",
+    "webpack": "^4.29.0"
+  },
+  "keywords": [
+    "devs",
+    "component",
+    "statemachine",
+    "game",
+    "engine",
+    "simulation"
+  ],
+  "author": "Unqiue",
+  "license": "MIT"
+}
