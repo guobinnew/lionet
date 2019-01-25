@@ -36,7 +36,7 @@ class DevsModel extends DevsEntity {
     }
 
     if (this.__portHandles__.has(handle)){
-      logger.warn(`DevsModel::addInport failed - port <${name}> is added`)
+      logger.warn(`DevsModel::addInport failed - port <${name}> is added : ${handle}`)
       return handle
     }
     this.__inports__.add(handle)
@@ -193,7 +193,7 @@ class DevsModel extends DevsEntity {
     // 添加端口
     if (utils.common.isArray(json.ports)) {
       for(let p of json.ports){
-        p.orientation === 'in' ? this.addInport(p.name) : this.addOutport(name)
+        p.orientation === 'in' ? this.addInport(p.name) : this.addOutport(p.name)
       }
     }
   }

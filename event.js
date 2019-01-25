@@ -121,7 +121,11 @@ class DevsEvent extends DevsEntity {
    * @return [object] 参数列表
    */
   params(){
-    return this.__params__.values()
+    let params = []
+    for(let p of this.__params__.values()){
+      params.push(p)
+    }
+    return params
   }
 
   /**

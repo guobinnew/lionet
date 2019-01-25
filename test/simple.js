@@ -9,18 +9,19 @@ class Simple extends  Lionet.Atomic {
 
   // 初始化（由仿真器调用）
 	initialize(){
-    this.addInport('in')
-    this.addOutport('out')
     this.holdIn(Lionet.Utils.devs.state.Passive, this.__step__)
   }
 
 	// 外部变迁（delta为相对时间）
 	deltext(delta, msg){
-    for(let content of msg.contents()){
-      if (content.port === 'in') {
-        console.log('receiving event: ' + content.event.toJson())
+    if (msg) {
+      for(let content of msg.contents()){
+        if (content.port === 'in') {
+          console.log('receiving event: ' + content.event.toJson())
+        }
       }
     }
+    
     this.resume(delta)
   }
 
@@ -34,6 +35,7 @@ class Simple extends  Lionet.Atomic {
     let msg = new Lionet.Message()
     let evt = new Lionet.Event()
     evt.setParam('Number', this.__msgid__++)
+    console.log(JSON.stringify(evt.params()))
     msg.setContent('out', evt)
     return msg
   }
@@ -56,17 +58,19 @@ function testSingleAtomic(step = 10){
       },
     ]
   })
-  
-	let simulator = new Lionet.AtomicSimulator(root)
-	simulator.initialize()
+
+  let simulator = new Lionet.AtomicSimulator(root)
+  simulator.initialize()
+  console.log(`init: tL: ${simulator.tl()} tN: ${simulator.tn()}`)
 	while( step>0 ){
 	 simulator.simulate(1)
-	 step--
+   step--
+   let output = simulator.output()
+   if (output) {
+    console.log(`output: ${JSON.stringify(output.toJson())}`)
+   }
 	 console.log(`tL: ${simulator.tl()} tN: ${simulator.tn()}`)
 	}
-
-	delete root
-	delete simulator
 }
 
 testSingleAtomic()

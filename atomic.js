@@ -26,8 +26,8 @@ class DevsAtomic extends DevsModel{
    * @param handle number 0为保留空闲状态（
    */
   registerState(option){
-    if (!utils.common.isObject(option) || utils.common.isString(option.name)){
-      logger.error(`DevsAtomic::registerState failed - invalide param`)
+    if (!utils.common.isObject(option) || !utils.common.isString(option.name)){
+      logger.error(`DevsAtomic::registerState failed - invalid param`)
       return 
     }
 
@@ -38,7 +38,7 @@ class DevsAtomic extends DevsModel{
     }
 
     let h = option.value
-    if(!h){
+    if (utils.common.isNull(h)){
       h = utils.common.hashString(n)
     } else if (!utils.common.isNumber(h)){
       logger.error(`DevsAtomic::registerState failed - option.handle is not number`)
@@ -153,7 +153,7 @@ class DevsAtomic extends DevsModel{
    */
   resume(delta){
     // 如果不是永久保持，则更新Sigma
-    if (this.__sigma__ < utils.devs.Time.infinity){
+    if (this.__sigma__ < utils.devs.time.Infinity){
       let sigma = this.__sigma__ - delta
       if (sigma < 0) {
         logger.warn(`DevsAtomic::resume - sigma < 0`)
@@ -178,7 +178,7 @@ class DevsAtomic extends DevsModel{
       handle = this.phaseHandle(handle)
     }
 
-    if(!handle) {
+    if(utils.common.isNull(handle)) {
       logger.error(`DevsAtomic::holdIn failed - state <${state}> can not found`)
       return
     }
