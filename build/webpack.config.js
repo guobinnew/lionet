@@ -1,5 +1,4 @@
-const CopyWebpackPlugin = require("copy-webpack-plugin")
-const CleanWebpackPlugin = require('clean-webpack-plugin')
+
 const path = require('path')
 const fs = require('fs')
 
@@ -9,28 +8,12 @@ if (!fs.existsSync(distPath)) {
 }
 
 module.exports = {
-  target: 'node',
-  mode: 'production',
-  entry: path.join(__dirname, '../index.js'),
+  //target: 'node',
+  mode: 'development',
+  entry: path.join(__dirname, '../dist/js/index.js'),
   output: {
     path: distPath,
     filename: 'lionet.js'
   },
-  devtool: 'none',
-  module: {
-    rules: [{
-      test: /\.js$/,
-      use: {
-        loader: "babel-loader"
-      },
-      exclude: /node_modules/
-    }]
-  },
-  plugins: [
-    new CleanWebpackPlugin(["dist"], {
-      root: path.join(__dirname, '..'),
-      verbose: true, //开启在控制台输出信息
-      dry: false,
-    })
-  ]
+  devtool: 'none'
 }

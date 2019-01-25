@@ -1,4 +1,4 @@
-import Lionet from '../index'
+import Lionet from '../dist/js/index'
 
 class Simple extends  Lionet.Atomic {
   constructor(config){
@@ -100,11 +100,8 @@ function testSingleCoupled(step = 10){
     console.log(`output: ${JSON.stringify(output.toJson())}`)
    }
 	 console.log(`tL: ${coordinator.tl()} tN: ${coordinator.tn()}`)
-	}
- 
+	} 
 }
-
-
 
 
 //testSingleAtomic()
