@@ -35,8 +35,12 @@ class DevsModel extends DevsEntity {
       return 0
     }
 
+    for(let i of this.__portHandles__){
+
+    }
+
     if (this.__portHandles__.has(handle)){
-      logger.warn(`DevsModel::addInport failed - port <${name}> is added : ${handle}`)
+      logger.warn(`DevsModel::addInport - port <${name}> is already existed`)
       return handle
     }
     this.__inports__.add(handle)
@@ -57,7 +61,7 @@ class DevsModel extends DevsEntity {
     }
 
     if (this.__portHandles__.has(handle)){
-      logger.warn(`DevsModel::addOutport failed - port <${name}> is added`)
+      logger.warn(`DevsModel::addOutport - port <${name}> is already existed`)
       return handle
     }
     this.__outports__.add(handle)

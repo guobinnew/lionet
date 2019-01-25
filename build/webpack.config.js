@@ -14,7 +14,7 @@ module.exports = {
   entry: path.join(__dirname, '../index.js'),
   output: {
     path: distPath,
-    filename: 'blueprint.js'
+    filename: 'lionet.js'
   },
   devtool: 'none',
   module: {

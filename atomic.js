@@ -90,7 +90,7 @@ class DevsAtomic extends DevsModel{
 
   /**
    * 获取/设置仿真器
-   * @param {*} sim 
+   * @param {*} sim DevsCoupledSimulator
    */
   simulator(sim){
     if (!sim) {
@@ -102,13 +102,8 @@ class DevsAtomic extends DevsModel{
       return
     }
 
-    if (!sim.isDevsSimulator) {
-      logger.error(`DevsAtomic::simulator failed - sim is not a DevsSimultor`)
-      return
-    }
     this.__simulator__ = sim
   }
-
 
   /**
    * 初始化（由仿真器调用）

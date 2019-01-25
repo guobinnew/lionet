@@ -19,6 +19,18 @@ class DevsMessage extends DevsEntity {
   }
 
   /**
+   * 
+   * @param {*} content 
+   */
+  addContent(content){
+    if (utils.common.isNull(content)){
+      logger.error(`DevsMessage::addContent failed - content is null`)
+      return
+    }
+    this.__contents__.push(content)
+  }
+
+  /**
    * 设置参数
    * @param {*} port string
    * @param {*} event any
@@ -35,8 +47,8 @@ class DevsMessage extends DevsEntity {
       return
     }
 
-    if (!event || !event.isDevsEvent){
-      logger.error(`DevsMessage::setContent failed - event is not a DevsEvent : ${event}`)
+    if (!event){
+      logger.error(`DevsMessage::setContent failed - event is null : ${event}`)
       return
     }
 
@@ -83,6 +95,7 @@ class DevsMessage extends DevsEntity {
 
     return list
   }
+
   /**
    * 
    * @param {*} name string
@@ -100,7 +113,6 @@ class DevsMessage extends DevsEntity {
         break
       }
     }
-
     return found
   }
 
@@ -135,7 +147,6 @@ class DevsMessage extends DevsEntity {
     this.__contents__ = newlist
   }
 
-
   /**
    * 
    */
@@ -163,11 +174,13 @@ class DevsMessage extends DevsEntity {
    * @param {*} msg 
    */
    merge(msg){
-     if (!msg || !msg.isDevsMessage){
+     if (!msg){
+       return 
+     } 
+     if(!(msg instanceof DevsMessage)){
       logger.error(`DevsMessage::merge failed - msg is not a DevsMessage : ${msg}`)
       return
      }
-
      for(let content of msg.contents()){
        this.__contents__.push(content)
      }
@@ -177,7 +190,7 @@ class DevsMessage extends DevsEntity {
    * 清空参数
    */
   clear(){
-    this.__contents__.clear()
+    this.__contents__.splice(0, this.__contents__.length)
   }
 
   /**
@@ -212,7 +225,6 @@ class DevsMessage extends DevsEntity {
    */
   fromJson(json){
     super.fromJson(json)
-    this.isDevsMessage = true
 
     if (this.__contents__){
       this.__contents__.splice(0, this.__contents__.length)

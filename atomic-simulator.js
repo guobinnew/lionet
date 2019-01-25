@@ -96,10 +96,10 @@ import utils from './utils'
      } else {
       if(!this.equalTN(curTime)){
         // 外部变迁处理
-        this.__owner__.deltext( curTime - tL_, msg)
+        this.__owner__.deltext( curTime - this.__tl__, msg)
       } else {
         // 进行冲突处理
-				this.__owner__.deltcon( curTime - tL_, msg)
+				this.__owner__.deltcon( curTime - this.__tl__, msg)
       }
      }
 

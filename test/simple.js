@@ -9,6 +9,8 @@ class Simple extends  Lionet.Atomic {
 
   // 初始化（由仿真器调用）
 	initialize(){
+    this.addInport('in')
+    this.addOutport('out')
     this.holdIn(Lionet.Utils.devs.state.Passive, this.__step__)
   }
 
@@ -21,7 +23,6 @@ class Simple extends  Lionet.Atomic {
         }
       }
     }
-    
     this.resume(delta)
   }
 
@@ -35,7 +36,6 @@ class Simple extends  Lionet.Atomic {
     let msg = new Lionet.Message()
     let evt = new Lionet.Event()
     evt.setParam('Number', this.__msgid__++)
-    console.log(JSON.stringify(evt.params()))
     msg.setContent('out', evt)
     return msg
   }
@@ -46,17 +46,7 @@ Lionet.Register.register('Simple', Simple)
 function testSingleAtomic(step = 10){
   let root = new Simple({
     name: 'm1',
-    step: 1000,
-    ports:[
-      {
-        orientation: 'in',
-        name: 'in'
-      },
-      {
-        orientation: 'out',
-        name: 'out'
-      },
-    ]
+    step: 1000
   })
 
   let simulator = new Lionet.AtomicSimulator(root)
@@ -73,4 +63,49 @@ function testSingleAtomic(step = 10){
 	}
 }
 
-testSingleAtomic()
+function testSingleCoupled(step = 10){
+  let root = new Lionet.Coupled({name: 'c1'})
+  let m1 = new Simple({
+    name: 'm1',
+    step: 1000
+  })
+
+  root.add(m1)
+  root.addCouprel({
+    model: 'c1',
+    port: 'i_in',
+  },
+  {
+    model: 'm1',
+    port: 'in'
+  })
+
+  root.addCouprel({
+    model: 'm1',
+    port: 'out',
+  },
+  {
+    model: 'c1',
+    port: 'o_out'
+  })
+
+  let coordinator = new Lionet.CoupledCoordinator(root)
+  coordinator.initialize()
+  console.log(`init: tL: ${coordinator.tl()} tN: ${coordinator.tn()}`)
+	while( step>0 ){
+    coordinator.simulate(1)
+   step--
+   let output = coordinator.output()
+   if (output) {
+    console.log(`output: ${JSON.stringify(output.toJson())}`)
+   }
+	 console.log(`tL: ${coordinator.tl()} tN: ${coordinator.tn()}`)
+	}
+ 
+}
+
+
+
+
+//testSingleAtomic()
+testSingleCoupled()

@@ -145,7 +145,6 @@ class DevsEvent extends DevsEntity {
    */
   fromJson(json){
     super.fromJson(json)
-    this.isDevsEvent = true
     this.__timestamp__ = json.timestamp
 
     if (this.__params__) {

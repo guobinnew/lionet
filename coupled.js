@@ -21,16 +21,20 @@ class DevsCoupled extends DevsModel {
    * @param {*} child 
    */
   add(child){
-    if(!child || !child.isDevsModel) {
+    if(!(child instanceof DevsModel)) {
       logger.error(`DevsCoupled::add failed - child is not a DevsModel`)
       return
     }
-    this.__children__.add(child)
+    let key = child.name()
+    if (this.__children__.has(key)){
+      logger.warn(`DevsCoupled::add - found duplicated name: ${key}`)
+    }
+    this.__children__.set(key, child)
   }
 
   /**
    * 子模型集合
-   * @return Set
+   * @return Map
    */
   children(){
     return this.__children__
@@ -39,7 +43,7 @@ class DevsCoupled extends DevsModel {
 
   /**
    * 模型端口连接集合
-   * @return Set
+   * @return Map
    */
   couprels(){
     return this.__couprels__
@@ -59,18 +63,33 @@ class DevsCoupled extends DevsModel {
       return
     }
 
-    if (!coord.isDevsCoordinator) {
-      logger.error(`DevsCoupled::coordinator failed - coord is not a DevsCoordinator`)
-      return
-    }
     this.__coordinator__ = coord
+  }
+
+  /**
+   * 根据名称获取子模型
+   * @param {*} name string
+   * @return DevsModel 可能是自己
+   */
+  child(name){
+    if(!utils.common.isString(name)){
+      logger.error(`DevsCoupled::child failed - name is not a string`)
+      return null
+    }
+
+    // 可能是自己
+    if(name === this.name()){
+      return this
+    }
+
+    return this.__children__.get(name)
   }
 
   /**
    * 添加事件通讯
    * @param {*} src object
    * {
-   *    model: DevsModel
+   *    model: DevsModel | string
    *    port: string 端口名
    * }
    * @param {*} dest 
@@ -80,44 +99,62 @@ class DevsCoupled extends DevsModel {
       return
     }
 
-    let srcPortHandle = 0
-    let destPortHandle = 0
-    if (src.model === this){
-      srcPortHandle = src.model.addInport(src.port)  // 内部联系
-    } else {
-      srcPortHandle = src.model.addOutport(src.port)
+    let srcModel = src.model
+    if(!(srcModel instanceof DevsModel)){
+      srcModel = this.child(src.model)
     }
 
-    if (dest.model === this){
-      destPortHandle = dest.model.addOutport(dest.port)  // 内部联系
+    if (!srcModel){
+      logger.error(`DevsCoupled::addCouprel failed - src is invalid`)
+      return
+    }
+
+    let destModel = dest.model
+    if(!(destModel instanceof DevsModel)){
+      destModel = this.child(dest.model)
+    }
+
+    if (!destModel){
+      logger.error(`DevsCoupled::addCouprel failed - dest is invalid`)
+      return
+    }
+
+    if (srcModel === this){
+      srcModel.addInport(src.port)  // 内部联系
     } else {
-      destPortHandle = dest.model.addInport(dest.port)
+      srcModel.addOutport(src.port)
+    }
+
+    if (destModel === this){
+      destModel.addOutport(dest.port)  // 内部联系
+    } else {
+      destModel.addInport(dest.port)
     }
 
     // 检测是否已经存在(不能重复添加)
     let couprel = {
-      src: src.model,
-      srcPortHandle: srcPortHandle,
-      dest: dest.model,
-      destPortHandle: destPortHandle
+      srcModel: srcModel,
+      srcPort: src.port,
+      destModel: destModel,
+      destPort: dest.port
     }
     let handle = this.couprelHandle(couprel)
     if (!this.__couprels__.has(handle)){
       this.__couprels__.set(handle, couprel)
     } else {
-      logger.warn(`DevsCoupled::coordinator failed - coord is not a DevsCoordinator`)
+      logger.warn(`DevsCoupled::addCouprel failed - found duplicated couprel: ${src} ${dest}`)
       return
     }
   }
 
   couprelHandle(couprel){
-    if (!couprel || !couprel.src || !couprel.dest) {
-      logger.error(`DevsCoupled::addCouprel failed - couprel is repeated : ${src} ${dest}`)
+    if (!couprel || !couprel.srcModel || !couprel.destModel) {
+      logger.error(`DevsCoupled::couprelHandle failed - couprel is invalid`)
       return null
     }
 
     return utils.common.hashString(
-      couprel.src.name() + ':' + couprel.src.portName(couprel.srcPortHandle) + '>' + couprel.dest.name() + ':' + couprel.dest.portName(couprel.destPortHandle)
+      couprel.srcModel.id() + ':' + couprel.srcPort + '>' + couprel.destModel.id() + ':' + couprel.destPort
     )
   }
 
@@ -138,7 +175,7 @@ class DevsCoupled extends DevsModel {
    * Override
    */
   initialize(){
-    for(let child of this.__children__){
+    for(let child of this.__children__.values()){
       child.initialize()
     }
   }
@@ -148,7 +185,7 @@ class DevsCoupled extends DevsModel {
    */
   toJson() {
     let children = new Array()
-    for(let child of this.__children__){
+    for(let child of this.__children__.values()){
       children.push(child.toJson())
     }
 
@@ -204,3 +241,5 @@ class DevsCoupled extends DevsModel {
   }
 
 }
+
+export default DevsCoupled
