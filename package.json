@@ -2,7 +2,7 @@
   "name": "orion-lionet",
   "version": "1.0.0",
   "description": "based-component state machine engine， suitable for games and simulation",
-  "main": "dist/lionet.js",
+  "main": "dist/js/index.js",
   "scripts": {
     "build": "./node_modules/.bin/gulp",
     "bundle": "./node_modules/.bin/webpack --config ./build/webpack.config.js",
