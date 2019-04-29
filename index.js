@@ -1,5 +1,6 @@
 import utils from './utils'
 import DevsModelRegister from './registry'
+import DevsSpawn from './spawn'
 import DevsAtomic from './atomic'
 import DevsEvent from './event'
 import DevsMessage from './message'
@@ -10,6 +11,7 @@ import DevsCoordinator from './coordinator'
 const Lionet = {
   Utils: utils,
   Register: DevsModelRegister,
+  Spawn: DevsSpawn,
   Atomic: DevsAtomic,
   Coupled: DevsCoupled,
   Event: DevsEvent,

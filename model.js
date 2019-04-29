@@ -8,7 +8,18 @@ import utils from './utils'
 class DevsModel extends DevsEntity {
   /**
    * 构造函数
-   * @param {*} config
+   * @param {*} name string
+   */
+  constructor(name){
+    super(name)
+    this.__inports__ = new Set()
+    this.__outports__ = new Set()
+    this.__portHandles__ = new Map()
+  }
+
+  /**
+   * 初始化
+   * @param {*} config 
    * {
    *    继承 DevsEntity
    *    ports: [
@@ -19,8 +30,18 @@ class DevsModel extends DevsEntity {
    *    ]
    * }
    */
-  constructor(config){
-    super(config)
+  prepare(config) {
+    super.prepare(config)
+    // 添加端口
+    if (utils.common.isArray(config.ports)) {
+      this.__inports__.clear()
+      this.__outports__.clear()
+      this.__portHandles__.clear()
+
+      for(let p of config.ports){
+        p.orientation === 'in' ? this.addInport(p.name) : this.addOutport(p.name)
+      }
+    }
   }
 
   /**
@@ -33,10 +54,6 @@ class DevsModel extends DevsEntity {
     if (!handle) {
       logger.error(`DevsModel::addInport failed - invalid param`)
       return 0
-    }
-
-    for(let i of this.__portHandles__){
-
     }
 
     if (this.__portHandles__.has(handle)){
@@ -146,9 +163,9 @@ class DevsModel extends DevsEntity {
   }
 
   /**
-   * 
+   * 打印输出
    */
-  toJson() {
+  dump() {
     let ports = new Array()
     for (let handle of this.__inports__) {
       ports.push({
@@ -162,44 +179,10 @@ class DevsModel extends DevsEntity {
         name: this.portName(handle)
       })
     }
-    return Object.assign(super.toJson(),
+    return Object.assign(super.dump(),
     {
       ports: ports
     })
-  }
-
-  /**
-   * 
-   * @param {*} json 
-   */
-  fromJson(json){
-    super.fromJson(json)
-    this.isDevsModel = true
-
-    if (this.__inports__) {
-      this.__inports__.clear()
-    } else {
-      this.__inports__ = new Set()
-    }
-
-    if (this.__outports__) {
-      this.__outports__.clear()
-    } else {
-      this.__outports__ = new Set()
-    }
-
-    if (this.__portHandles__) {
-      this.__portHandles__.clear()
-    } else {
-      this.__portHandles__ = new Map()
-    }
-
-    // 添加端口
-    if (utils.common.isArray(json.ports)) {
-      for(let p of json.ports){
-        p.orientation === 'in' ? this.addInport(p.name) : this.addOutport(p.name)
-      }
-    }
   }
 }
 

@@ -12,9 +12,16 @@ class DevsEvent extends DevsEntity {
    * }
    */
   constructor(config){
-    super(Object.assign({
-      timestamp: 0
-    }, config))
+    super('Event')
+    this.__params__ = new Map()
+    this.fromJson(config)
+  }
+
+  /**
+   * 获取类名(必须手动设置，防止代码压缩后类名被修改)
+   */
+  className() {
+    return 'DevsEvent' //this.__proto__.constructor.name
   }
 
   /**
@@ -144,16 +151,15 @@ class DevsEvent extends DevsEntity {
    * @param {*} json 
    */
   fromJson(json){
+    if (!json) {
+      return
+    }
+
     super.fromJson(json)
     this.__timestamp__ = json.timestamp
 
-    if (this.__params__) {
-      this.__params__.clear()
-    } else {
-      this.__params__ = new Map()
-    }
-
     // 添加参数
+    this.__params__.clear()
     if (utils.common.isArray(json.params)){
       for(let p of json.params){
         this.setParam(p.name, p.value)

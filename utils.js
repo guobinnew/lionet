@@ -120,6 +120,18 @@ const utils = {
     },
 
     /**
+     * 判断是否继承关系
+     * @param {*} binaryString 
+     */
+    isSubclass(parent, child) {
+      let proto = Object.getPrototypeOf(child)
+      while(proto && proto !== parent) {
+        proto = Object.getPrototypeOf(proto)
+      }
+      return !!proto
+    },
+
+    /**
      * 字符串转Buffer
      */
     string2ArrayBuffer: function (binaryString) {

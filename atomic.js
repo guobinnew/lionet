@@ -5,25 +5,53 @@ import logger from './logger'
 class DevsAtomic extends DevsModel{
   /**
    * 构造函数
-   * @param {*} config 
-   *  {
-   *     继承 DevsModel
-   *     states: [object | string]  状态列表
-   *     {
-   *        name: string 状态名 不能为空 
-   *        value: number 状态值 (0为保留值，不能使用)
-   *     }
-   *  }
    */
-  constructor(config){
-    super(config)
+  constructor(name){
+    super(name)
     this.__simulator__ = null // 模型执行器
+    this.__sigma__ = 0 // 当前状态的剩余时间（相对时间）
+    this.__phase__ = 0 // 当前状态句柄
+    this.__stateHandles__ = new Map()
+   
+    // 注册保留状态
+    this.__reservedHandles__ = new Array()
+    for(let [k,v] of Object.entries(utils.devs.state)) {
+      this.registerState({name: `__${k}__`, value: v, reserved: true})
+    }
   }
 
   /**
+   * 
+   * @param {*} config
+   * {
+   *   states: [string] 状态列表
+   * }
+   */
+  prepare(config) {
+    super.prepare(config)
+
+    if (utils.common.isArray(config.states)) {
+      this.__stateHandles__.clear()
+
+      for(let s of config.states){
+        if (utils.common.isString(s)){
+          this.registerState({name: s})
+        } else {
+          logger.error(`DevsAtomic::prepare failed - state <${s}> is invalid`)
+        }
+      }
+    }
+  }
+
+
+  /**
    * 注册状态
-   * @param state string
-   * @param handle number 0为保留空闲状态（
+   * @param {*} option 
+   * {
+   *    name string 状态名
+   *    value: number 状态句柄
+   *    reserved: bool 是否为保留状态
+   * }
    */
   registerState(option){
     if (!utils.common.isObject(option) || !utils.common.isString(option.name)){
@@ -33,7 +61,13 @@ class DevsAtomic extends DevsModel{
 
     let n = utils.common.trimString(option.name)
     if (n.length === 0){
-      logger.error(`DevsAtomic::registerState failed - option.name is invalid`)
+      logger.error(`DevsAtomic::registerState failed - name is empty`)
+      return 
+    }
+
+    // 检测是否与保留状态冲突
+    if (!option.reserved && this.__reservedHandles__.indexOf(n) >= 0) {
+      logger.error(`DevsAtomic::registerState failed - name <${n}> is reserved state`)
       return 
     }
 
@@ -41,14 +75,18 @@ class DevsAtomic extends DevsModel{
     if (utils.common.isNull(h)){
       h = utils.common.hashString(n)
     } else if (!utils.common.isNumber(h)){
-      logger.error(`DevsAtomic::registerState failed - option.handle is not number`)
+      logger.error(`DevsAtomic::registerState failed - handle <${h}> is not number`)
       return
     }
 
     // 检测是否重复
     if(this.__stateHandles__.has(h)) {
-      logger.warn(`DevsAtomic::registerState failed - option.handle is added : ${option}`)
+      logger.warn(`DevsAtomic::registerState failed - handle <${h}> is repeated`)
       return
+    }
+
+    if (option.reserved) {
+      this.__reservedHandles__.push(option.name)
     }
 
     this.__stateHandles__.set(h, n)
@@ -90,7 +128,7 @@ class DevsAtomic extends DevsModel{
 
   /**
    * 获取/设置仿真器
-   * @param {*} sim DevsCoupledSimulator
+   * @param {*} sim DevsAtomicSimulator | DevsCoupledSimulator
    */
   simulator(sim){
     if (!sim) {
@@ -107,8 +145,15 @@ class DevsAtomic extends DevsModel{
 
   /**
    * 初始化（由仿真器调用）
+   * @param {*} json 
    */
-  initialize(){
+  initialize(json){
+    if (json) {
+      this.fromJson(json)
+    } else {
+      this.__sigma__ = 0
+      this.__phase__ = 0
+    }
   }
 
   /**
@@ -164,7 +209,7 @@ class DevsAtomic extends DevsModel{
    */
   holdIn(state, delta){
     if (!utils.common.isString(state) && !utils.common.isNumber(state)){
-      logger.error(`DevsAtomic::holdIn failed - state is invalid : ${state}`)
+      logger.error(`DevsAtomic::holdIn failed - state <${state}> is invalid`)
       return false
     }
 
@@ -190,6 +235,14 @@ class DevsAtomic extends DevsModel{
     this.holdIn(state, utils.devs.time.Infinity)
   }
 
+
+  /**
+   * 永久停留保留空闲状态
+   */
+  passivated(){
+    this.holdIn(utils.devs.state['Passive'], utils.devs.time.Infinity)
+  }
+
   /**
    * 检查当前状态
    * @param {*} state  string | number 状态名或句柄
@@ -197,7 +250,7 @@ class DevsAtomic extends DevsModel{
    */
   phaseIs(state){
     if (!utils.common.isString(state) && !utils.common.isNumber(state)){
-      logger.error(`DevsAtomic::phaseIs failed - state is invalid : ${state}`)
+      logger.error(`DevsAtomic::phaseIs failed - state <${state}> is invalid`)
       return false
     }
     
@@ -215,7 +268,7 @@ class DevsAtomic extends DevsModel{
 
   phaseName(handle){
     if (!utils.common.isNumber(handle)){
-      logger.error(`DevsAtomic::phaseName failed - handle is invalid : ${handle}`)
+      logger.error(`DevsAtomic::phaseName failed - handle <${handle}> is invalid`)
       return null
     }
 
@@ -232,7 +285,7 @@ class DevsAtomic extends DevsModel{
    */
   phaseHandle(name){
     if (!utils.common.isString(name)){
-      logger.error(`DevsAtomic::phaseHandle failed - name is invalid : ${name}`)
+      logger.error(`DevsAtomic::phaseHandle failed - name <${name}> is invalid`)
       return null
     }
     let handle = null
@@ -245,24 +298,36 @@ class DevsAtomic extends DevsModel{
     return handle
   }
 
-   /**
-   * 
+  /**
+   * 打印输出
    */
-  toJson() {
+  dump() {
     let states = new Array()
     for(let [key, value] of this.__stateHandles__.entries()){
-      if (key === 0){ // 略过Passive
-        continue
-      }
-
       states.push({
         name: value,
         value: key
       })
     }
+    return Object.assign(super.dump(),
+    {
+      class: this.__class__,
+      states: states,
+      current: {
+        phase: this.phaseName(this.__phase__),
+        sigma: this.__sigma__
+      }
+    })
+  }
+
+  /**
+   * 
+   */
+  toJson() {
     return Object.assign(super.toJson(),
     {
-      states: states
+      sigma: this.__sigma__,
+      phase: this.__phase__ 
     })
   }
 
@@ -272,37 +337,25 @@ class DevsAtomic extends DevsModel{
    */
   fromJson(json){
     super.fromJson(json)
-    this.__sigma__ = 0 // 当前状态的剩余时间（相对时间）
-    this.__phase__ = 0 // 当前状态句柄
+    this.__sigma__ = +json.sigma
+    this.__phase__ = +json.phase
+  }
 
-    if (this.__stateHandles__) {
-      this.__stateHandles__.clear()
-    } else {
-      this.__stateHandles__ = new Map()
-    }
-
-    // 注册状态
-    let s = 'Passive'
-    this.registerState({
-      name: s,
-      value: utils.devs.state[s]})
-
-    if (utils.common.isArray(json.states)) {
-      for(let s of json.states){
-        if (utils.common.isString(s)){
-          this.registerState({name: s})
-        } else  if (utils.common.isObject(s)){
-          if (s.handle === 0) {
-            logger.error(`DevsAtomic::constructor failed - handle of state <${s.name}> is 0`)
-            continue
-          }
-          this.registerState(s)
-        } else {
-          logger.error(`DevsAtomic::constructor failed - state is invalid : <${s}>`)
-        }
+  /**
+   * 
+   * @param {*} data 
+   */
+  snapshot(data) {
+    if (!data) {
+      return {
+        __class__: this.className(),
+        __base__: this.toJson()
       }
+    } else {
+      this.fromJson(data['__base__'])
     }
   }
+
 }
 
 export default DevsAtomic

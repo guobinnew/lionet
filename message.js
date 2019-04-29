@@ -15,7 +15,16 @@ class DevsMessage extends DevsEntity {
    * }
    */
   constructor(config){
-    super(config)
+    super('Message')
+    this.__contents__ = new Array()
+    this.fromJson(config)
+  }
+
+  /**
+   * 获取类名(必须手动设置，防止代码压缩后类名被修改)
+   */
+  className() {
+    return 'DevsMessage' //this.__proto__.constructor.name
   }
 
   /**
@@ -224,15 +233,13 @@ class DevsMessage extends DevsEntity {
    * @param {*} json 
    */
   fromJson(json){
-    super.fromJson(json)
-
-    if (this.__contents__){
-      this.__contents__.splice(0, this.__contents__.length)
-    } else {
-      this.__contents__ = new Array()
+    if (!json) {
+      return
     }
 
+    super.fromJson(json)
     // 添加参数
+    this.__contents__.splice(0, this.__contents__.length)
     if (utils.common.isArray(json.contents)){
       for(let p of json.contents){
         let evt = new DevsEvent(p.event)
