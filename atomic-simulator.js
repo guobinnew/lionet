@@ -1,5 +1,6 @@
 import uniqid from 'uniqid'
 import utils from './utils'
+import version from './verison'
 import logger from './logger'
 import DevsMessage from './message';
 
@@ -13,6 +14,7 @@ class DevsAtomicSimulator {
     this.__tn__ = utils.devs.time.Infinity
     this.__output__ = null
     this.__owner__ = atomic
+    this.__owner__.simulator(this)
   }
 
   tl() {
@@ -88,7 +90,6 @@ class DevsAtomicSimulator {
     }
   }
 
-
   /**
    * 
    * @param {*} curTime 
@@ -146,19 +147,13 @@ class DevsAtomicSimulator {
       logger.error(`DevsAtomicSimulator::snapshot failed - model is null`)
       return null
     }
-
     if (!data) {
       return {
-        type: 'atomic',
-        simulator: this.toJson(),
+        type: 'simulator',
+        version: version.current,
         model: this.__owner__.snapshot()
       }
     } else {
-      if (data.type !== 'atomic') {
-        logger.error(`DevsAtomicSimulator::snapshot failed - data format is invalid`)
-        return
-      }
-      this.fromJson(data.simulator)
       this.__owner__.snapshot(data.model)
     }
   }

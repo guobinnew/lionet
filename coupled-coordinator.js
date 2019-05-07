@@ -7,6 +7,8 @@ class DevsCoupledCoordinator extends DevsBaseCoupledSimulator{
   constructor(coupled){
     super()
     this.__coordinator__ = new DevsCoordinator(coupled)
+    // 更新仿真器
+    coupled.coordinator(this)
   }
 
   tl(){
@@ -43,12 +45,41 @@ class DevsCoupledCoordinator extends DevsBaseCoupledSimulator{
   }
 
   /**
+   * 保存当前状态
+   */
+  toJson() {
+    return this.snapshot()
+  }
+
+   /**
+   * 
+   * @param {*} json 
+   */
+  fromJson(json){
+    this.snapshot(json)
+  }
+
+  /**
    * 快照当前状态
    */
-  snapshot() {
-    return {
-      type: 'coupled-coordinator',
-      coordinator: this.__coordinator__.snapshot()
+  snapshot(data) {
+    if (!this.__coordinator__) {
+      logger.error(`DevsCoupledCoordinator::snapshot failed - model is null`)
+      return null
+    }
+
+    if (!data) {
+      return Object.assign(super.snapshot(), {
+        type: 'coupled-coordinator',
+        coordinator: this.__coordinator__.toJson()
+      })
+    } else {  
+      if (data.type !== 'coupled-coordinator') {
+        logger.error(`DevsCoupledCoordinator::snapshot failed - data.type is invalid`)
+        return
+      }
+      super.snapshot(data)
+      this.__coordinator__.fromJson(data.coordinator)
     }
   }
 

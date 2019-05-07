@@ -1,5 +1,5 @@
-import Lionet from '../dist/js/index'
-//import Lionet from '../index'
+//import Lionet from '../dist/js/index'
+import Lionet from '../index'
 
 class Simple extends Lionet.Atomic {
   constructor(name, config) {
@@ -237,7 +237,11 @@ function testDeepCoupled(step = 20, snapshot = null) {
   let coordinator = null
 
   if (snapshot) {
-
+    coordinator = Lionet.Spawn.spawn(snapshot)
+    if (!coordinator) {
+      console.log(`spawn failed: ${JSON.stringify(snapshot)}`)
+      return
+    }
   } else {
     let m1 = Lionet.Register.create('Simple', {
       name: 'm1',
@@ -290,9 +294,9 @@ function testDeepCoupled(step = 20, snapshot = null) {
         },
         {
           src: 'c2',
-          srcPort: 'i_out',
+          srcPort: 'o_out',
           dest: 'c1',
-          destPort: 'i_out'
+          destPort: 'o_out'
         }
       ]
     })
@@ -316,16 +320,19 @@ function testDeepCoupled(step = 20, snapshot = null) {
 
 let snapshot = null
 
- snapshot = testSingleAtomic()
- console.log(JSON.stringify(snapshot))
+//  snapshot = testSingleAtomic()
+//  console.log(JSON.stringify(snapshot))
 
- snapshot = testSingleAtomic(10, snapshot)
- console.log(JSON.stringify(snapshot))
+//  snapshot = testSingleAtomic(10, snapshot)
+//  console.log(JSON.stringify(snapshot))
 
 // snapshot = testSingleCoupled()
 // console.log(JSON.stringify(snapshot))
 
 //testTwoCoupled()
 
-//snapshot = testDeepCoupled()
-//console.log(JSON.stringify(snapshot))
+snapshot = testDeepCoupled()
+console.log(JSON.stringify(snapshot))
+
+snapshot = testDeepCoupled(20, snapshot)
+console.log(JSON.stringify(snapshot))

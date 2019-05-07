@@ -97,7 +97,7 @@ class DevsModel extends DevsEntity {
       return null
     }
 
-    if(this.__portHandles__.has(handle)){
+    if(!this.__portHandles__.has(handle)){
       return null
     }
     return this.__portHandles__.get(handle)

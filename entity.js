@@ -75,7 +75,6 @@ import logger from './logger'
   dump() {
     return this.toJson()
   }
-
 }
 
 export default DevsEntity

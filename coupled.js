@@ -198,6 +198,22 @@ class DevsCoupled extends DevsModel {
   }
 
   /**
+   * 获取连接信息
+   */
+  getLinks() {
+    let links = new Array()
+    for(let rel of this.__couprels__.values()){
+      links.push({
+        src: rel.src.name(),
+        srcPort: rel.srcPort,
+        dest: rel.dest.name(),
+        destPort: rel.destPort
+      })
+    }
+    return links
+  }
+
+  /**
    * 打印输出
    */
   dump() {
@@ -206,20 +222,12 @@ class DevsCoupled extends DevsModel {
       children.push(child.dump())
     }
 
-    let couprels = new Array()
-    for(let rel of this.__couprels__.values()){
-      couprels.push({
-        src: rel.src.name(),
-        srcPort: rel.srcPort,
-        dest: rel.dest.name(),
-        destPort: rel.destPort
-      })
-    }
-
     return Object.assign(super.dump(),
     {
+      type: 'coupled',
+      class: this.__proto__.__classId__,
       children: children,
-      couprels: couprels
+      links: this.getLinks()
     })
   }
 
@@ -227,14 +235,10 @@ class DevsCoupled extends DevsModel {
    * 
    */
   toJson() {
-    let children = new Array()
-    for(let child of this.__children__.values()){
-      children.push(child.toJson())
-    }
-
     return Object.assign(super.toJson(),
     {
-      children: children
+      type: 'coupled',
+      class: this.__proto__.__classId__,
     })
   }
 
@@ -243,12 +247,16 @@ class DevsCoupled extends DevsModel {
    * @param {*} json 
    */
   fromJson(json){
+    if (json.type !== 'coupled') {
+      logger.error(`DevsCoupled::fromJson failed - json.type is not coupled`)
+      return
+    }
+
+    if (json.class !== this.__proto__.__classId__) {
+      logger.error(`DevsCoupled::fromJson failed - json.class is invalid, expectd to be ${this.__proto__.__classId__}`)
+      return
+    }
     super.fromJson(json)
-
-    // 初始化子模型
-
-    // 初始化连接
-
   }
 
   /**
@@ -257,9 +265,37 @@ class DevsCoupled extends DevsModel {
    */
   snapshot(data) {
     if (!data) {
-      return  this.toJson()
+      let json = this.toJson()
+
+      json.children = new Array()
+      for(let child of this.__children__.values()){
+        json.children.push(child.snapshot())
+      }
+      json.links = this.getLinks()
+
+      if (this.__coordinator__) {
+        json.coordinator =  this.__coordinator__.toJson()
+      }
+      return json
     } else {
       this.fromJson(data)
+      if (this.__coordinator__) {
+        this.__coordinator__.fromJson(data.coordinator)
+      }
+
+      // 递归子模型状态更新
+      if (utils.common.isArray(data.children)) {
+        for(let c of data.children){
+          let child = this.__children__.get(c.name)
+          if (!child) {
+            logger.error(`DevsCoupled::fromJson failed - model <${c.name}> is not existed`)
+            continue
+          }
+          child.snapshot(c)
+        }
+      } else {
+        logger.warn(`DevsCoupled::fromJson - json.children is not array`)
+      }
     }
   }
 }

@@ -135,6 +135,23 @@ class DevsBaseCoupledSimulator {
   nextTN() {
     return utils.devs.time.Infinity
   }
+
+   /**
+   * 快照当前状态
+   */
+  snapshot(data) {
+    if (!data) {
+      let json = {}
+      if (this.__input__) {
+        json.input = this.__input__.toJson()
+      }
+      return json
+    } else {
+      if (data.input) {
+        this.__input__.fromJson(data.input)
+      }
+    }
+  }
 }
 
 export default DevsBaseCoupledSimulator

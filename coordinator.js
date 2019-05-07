@@ -1,5 +1,6 @@
 import utils from './utils'
 import logger from './logger'
+import version from './verison'
 import DevsMessage from './message'
 import DevsAtomic from './atomic'
 import DevsCoupled from './coupled'
@@ -21,6 +22,8 @@ class DevsCoordinator {
    */
   constructor(coupled){
     this.__coupled__ = coupled
+    this.__coupled__.coordinator(this)
+
     this.__couprels__ = new Set()
     this.__simulators__ = new Set()
     this.__tl__ = utils.devs.time.Initial
@@ -95,7 +98,7 @@ class DevsCoordinator {
    * @param {*} curTime 
    */
   computeInputOutput(curTime){
-    this.__output__.clear()
+      this.__output__.clear()
 
     // 遍历执行输入输出
     for(let sim of this.__simulators__){
@@ -215,7 +218,6 @@ class DevsCoordinator {
   addSimulator(atomic){
     let sim = new DevsCoupledSimulator(atomic)
     sim.parent(this)
-    atomic.simulator(sim)
     this.__simulators__.add(sim)
   }
 
@@ -226,7 +228,6 @@ class DevsCoordinator {
   addCoordinator(coupled){
     let coor = new DevsCoupledCoordinator(coupled)
     coor.parent(this)
-    coupled.coordinator(coor)
     this.__simulators__.add(coor)
   }
 
@@ -299,20 +300,13 @@ class DevsCoordinator {
     }
 
     if(!data) {
-      let sims = []
-      for(let sim of this.__simulators__) {
-        sims.push(sim.snapshot())
-      }
-  
       return {
-        type: 'coupled',
-        coordinator: this.toJson(),
-        model: this.__coupled__.snapshot(),
-        simulators: sims
+        type: 'coordinator',
+        version: version.current,
+        model: this.__coupled__.snapshot()
       }
     } else {
-      // 初始化内部状态
-
+      this.__coupled__.snapshot(data.model)
     }
   }
 
@@ -341,14 +335,36 @@ class DevsCoordinator {
    */
   fromJson(json){
     if (!json) {
-      return
+      logger.error(`DevsCoordinator::fromJson failed - json is null`)
+      return null
     }
 
+    if (!utils.common.isNumber(json.tl)) {
+      logger.warn(`DevsCoordinator::fromJson - tl is not a number`)
+      this.__tl__ = utils.devs.time.Initial
+    } else {
+      this.__tl__ = json.tl
+    }
 
+    if (!utils.common.isNumber(json.tn)) {
+      logger.warn(`DevsCoordinator::fromJson - tn is not a number`)
+      this.__tn__ = utils.devs.time.Infinity
+    } else {
+      this.__tn__ = json.tn
+    }
+
+    if (json.input) {
+      this.__input__ = new DevsMessage()
+      this.__input__.fromJson(json.input)
+    } else {
+      this.__input__ = null
+    }
+
+    if (json.output) {
+      this.__output__.fromJson(json.output)
+    }
 
   }
-
-
 }
 
 export default DevsCoordinator

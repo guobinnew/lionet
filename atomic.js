@@ -272,10 +272,10 @@ class DevsAtomic extends DevsModel{
       return null
     }
 
-    if(this.__portHandles__.has(handle)){
+    if(!this.__stateHandles__.has(handle)){
       return null
     }
-    return this.__portHandles__.get(handle)
+    return this.__stateHandles__.get(handle)
   }
 
   /**
@@ -311,6 +311,7 @@ class DevsAtomic extends DevsModel{
     }
     return Object.assign(super.dump(),
     {
+      type: 'atomic',
       class:  this.__proto__.__classId__,
       states: states,
       current: {
@@ -334,9 +335,11 @@ class DevsAtomic extends DevsModel{
   toJson() {
     return Object.assign(super.toJson(),
     {
+      type: 'atomic',
       class: this.__proto__.__classId__,
       sigma: this.__sigma__,
-      phase: this.__phase__ 
+      phase: this.__phase__,
+      custom: this.clone()
     })
   }
 
@@ -345,6 +348,10 @@ class DevsAtomic extends DevsModel{
    * @param {*} json 
    */
   fromJson(json){
+    if (json.type !== 'atomic') {
+      logger.error(`DevsAtomic::fromJson failed - json.type is not atomic`)
+      return
+    }
 
     if (json.class !== this.__proto__.__classId__) {
       logger.error(`DevsAtomic::fromJson failed - json.class is invalid, expectd to be ${this.__proto__.__classId__}`)
@@ -354,21 +361,7 @@ class DevsAtomic extends DevsModel{
     super.fromJson(json)
     this.__sigma__ = +json.sigma
     this.__phase__ = +json.phase
-  }
-
-  /**
-   * 
-   * @param {*} data 
-   */
-  snapshot(data) {
-    if (!data) {
-      return Object.assign(this.toJson(), {
-        custom: this.clone()
-      })
-    } else {
-      this.fromJson(data)
-      this.clone(data.custom)
-    }
+    this.clone(json.custom)
   }
 
   /**
@@ -381,6 +374,25 @@ class DevsAtomic extends DevsModel{
     }
   }
 
+  /**
+   * 
+   * @param {*} data 
+   */
+  snapshot(data) {
+    if (!data) {
+      let json = this.toJson()
+      json.custom = this.clone()
+      if (this.__simulator__) {
+        json.simulator =  this.__simulator__.toJson()
+      }
+      return json
+    } else {
+      this.fromJson(data)
+      if (this.__simulator__) {
+        this.__simulator__.fromJson(data.simulator)
+      }
+    }
+  }
 }
 
 DevsAtomic.prototype.__classId__ = 'DevsAtomic'
