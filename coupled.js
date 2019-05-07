@@ -2,6 +2,9 @@ import DevsModel from './model'
 import utils from './utils'
 import logger from './logger'
 
+/**
+ * 目前不允许用户派生
+ */
 class DevsCoupled extends DevsModel {
    /**
    * 构造函数
@@ -11,9 +14,40 @@ class DevsCoupled extends DevsModel {
    *     children: [object]  子模型列表
    *  }
    */
-  constructor(config){
-    super(config)
+  constructor(name){
+    super(name)
     this.__coordinator__ = null
+    this.__children__ = new Map()
+    this.__couprels__ = new Map()
+  }
+
+  /**
+   * 
+   * @param {*} config
+   * {
+   *   links: []
+   * }
+   */
+  prepare(config) {
+    if (!config) {
+      return
+    }
+    super.prepare(config)
+
+    this.__children__.clear()
+    if (utils.common.isArray(config.children)) {
+      for( let c of config.children) {
+        this.add(c)
+      }
+    }
+
+    this.__couprels__.clear()
+    if (utils.common.isArray(config.links)) {
+      for( let l of config.links) {
+        this.addCouprel(l)
+      }
+    }
+
   }
 
   /**
@@ -39,7 +73,6 @@ class DevsCoupled extends DevsModel {
   children(){
     return this.__children__
   }
-
 
   /**
    * 模型端口连接集合
@@ -89,72 +122,56 @@ class DevsCoupled extends DevsModel {
    * 添加事件通讯
    * @param {*} src object
    * {
-   *    model: DevsModel | string
+   *    model: string
    *    port: string 端口名
    * }
    * @param {*} dest 
    */
-  addCouprel(src, dest){
-    if (!src  || !dest ) {
+  addCouprel(couprel){
+    if (!couprel) {
       return
     }
 
-    let srcModel = src.model
-    if(!(srcModel instanceof DevsModel)){
-      srcModel = this.child(src.model)
-    }
+    let c = Object.assign({}, couprel)
 
-    if (!srcModel){
-      logger.error(`DevsCoupled::addCouprel failed - src is invalid`)
+    c.src = this.child(c.src)
+    if (!c.src){
+      logger.error(`DevsCoupled::addCouprel failed - src <${couprel.src}> is invalid`)
       return
     }
 
-    let destModel = dest.model
-    if(!(destModel instanceof DevsModel)){
-      destModel = this.child(dest.model)
-    }
-
-    if (!destModel){
-      logger.error(`DevsCoupled::addCouprel failed - dest is invalid`)
+    c.dest = this.child(couprel.dest)
+    if (!c.dest){
+      logger.error(`DevsCoupled::addCouprel failed - dest <${couprel.dest}> is invalid`)
       return
     }
 
-    if (srcModel === this){
-      srcModel.addInport(src.port)  // 内部联系
-    } else {
-      srcModel.addOutport(src.port)
-    }
-
-    if (destModel === this){
-      destModel.addOutport(dest.port)  // 内部联系
-    } else {
-      destModel.addInport(dest.port)
-    }
+    // 耦合模型动态添加端口
+    if (c.src === this){
+      this.addInport(couprel.srcPort)  // 内部联系
+    } 
+    if (c.dest === this){
+      this.addOutport(couprel.destPort)  // 内部联系
+    } 
 
     // 检测是否已经存在(不能重复添加)
-    let couprel = {
-      srcModel: srcModel,
-      srcPort: src.port,
-      destModel: destModel,
-      destPort: dest.port
-    }
-    let handle = this.couprelHandle(couprel)
+    let handle = this.couprelHandle(c)
     if (!this.__couprels__.has(handle)){
-      this.__couprels__.set(handle, couprel)
+      this.__couprels__.set(handle, c)
     } else {
-      logger.warn(`DevsCoupled::addCouprel failed - found duplicated couprel: ${src} ${dest}`)
+      logger.warn(`DevsCoupled::addCouprel failed - found duplicated couprel: ${couprel}`)
       return
     }
   }
 
   couprelHandle(couprel){
-    if (!couprel || !couprel.srcModel || !couprel.destModel) {
+    if (!couprel || !couprel.src || !couprel.dest) {
       logger.error(`DevsCoupled::couprelHandle failed - couprel is invalid`)
       return null
     }
 
     return utils.common.hashString(
-      couprel.srcModel.id() + ':' + couprel.srcPort + '>' + couprel.destModel.id() + ':' + couprel.destPort
+      couprel.src.id() + ':' + couprel.srcPort + '>' + couprel.dest.id() + ':' + couprel.destPort
     )
   }
 
@@ -181,6 +198,32 @@ class DevsCoupled extends DevsModel {
   }
 
   /**
+   * 打印输出
+   */
+  dump() {
+    let children = new Array()
+    for(let child of this.__children__.values()){
+      children.push(child.dump())
+    }
+
+    let couprels = new Array()
+    for(let rel of this.__couprels__.values()){
+      couprels.push({
+        src: rel.src.name(),
+        srcPort: rel.srcPort,
+        dest: rel.dest.name(),
+        destPort: rel.destPort
+      })
+    }
+
+    return Object.assign(super.dump(),
+    {
+      children: children,
+      couprels: couprels
+    })
+  }
+
+  /**
    * 
    */
   toJson() {
@@ -189,20 +232,9 @@ class DevsCoupled extends DevsModel {
       children.push(child.toJson())
     }
 
-    let couprels = new Array()
-    for(let rel of this.__couprels__.values()){
-      couprels.push({
-        src: rel.src.name(),
-        srcPort: rel.src.portName(rel.srcPortHandle),
-        dest: rel.dest.name(),
-        destPort: rel.dest.portName(rel.destPortHandle)
-      })
-    }
-
     return Object.assign(super.toJson(),
     {
-      children: children,
-      couprels: couprels
+      children: children
     })
   }
 
@@ -212,34 +244,26 @@ class DevsCoupled extends DevsModel {
    */
   fromJson(json){
     super.fromJson(json)
-    
-    if (this.__children__) {
-      this.__children__.clear()
-    } else {
-      this.__children__ = new Map()
-    }
 
-    if (this.__couprels__) {
-      this.__couprels__.clear()
-    } else {
-      this.__couprels__ = new Map()
-    }
-   
-    // 添加子模型
-    if (utils.common.isArray(json.children)){
-      for(let p of json.children){
-        
-      }  
-    }
+    // 初始化子模型
 
-    // 添加连接
-    if (utils.common.isArray(json.couprels)){
-      for(let p of json.couprels){
-        
-      }
-    }
+    // 初始化连接
+
   }
 
+  /**
+   * 耦合模型
+   * @param {*} data 
+   */
+  snapshot(data) {
+    if (!data) {
+      return  this.toJson()
+    } else {
+      this.fromJson(data)
+    }
+  }
 }
+
+DevsCoupled.prototype.__classId__ = 'DevsCoupled'
 
 export default DevsCoupled

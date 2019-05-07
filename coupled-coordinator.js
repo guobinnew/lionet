@@ -41,6 +41,17 @@ class DevsCoupledCoordinator extends DevsBaseCoupledSimulator{
   nextTN(){
     return this.__coordinator__.nextTN()
   }
+
+  /**
+   * 快照当前状态
+   */
+  snapshot() {
+    return {
+      type: 'coupled-coordinator',
+      coordinator: this.__coordinator__.snapshot()
+    }
+  }
+
 }
 
 export default DevsCoupledCoordinator

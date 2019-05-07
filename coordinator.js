@@ -8,6 +8,7 @@ import DevsCoupledCoordinator from './coupled-coordinator'
 
 /**
  * 	耦合模型仿真器（用于顶层耦合模型的运行）
+ *  考虑支持克隆，暂时不允许用户继承自定义协调器
  */
 class DevsCoordinator {
   /**
@@ -19,8 +20,6 @@ class DevsCoordinator {
    * }
    */
   constructor(coupled){
-    this.isDevsCoordinator = true
-    
     this.__coupled__ = coupled
     this.__couprels__ = new Set()
     this.__simulators__ = new Set()
@@ -131,9 +130,9 @@ class DevsCoordinator {
    */
   nextTN(){
     let tn = utils.devs.time.Infinity
-    for(let sim of this.__simulators__){
+    for(let sim of this.__simulators__) {
       let next = sim.nextTN()
-      if (next < tn){
+      if (next < tn) {
         tn = next
       }
     }
@@ -159,7 +158,7 @@ class DevsCoordinator {
    * @param {*} msg 
    */
   injectMessage(msg){
-    if (!this.__input__){
+    if (!this.__input__) {
       this.__input__ = new DevsMessage()
     }
     this.__input__.merge(msg)
@@ -169,7 +168,7 @@ class DevsCoordinator {
    * 
    * @param {*} contents 
    */
-  putMessageEvent(content){
+  putMessageEvent(content) {
     content.event.timestamp(this.tn())
     this.__output__.addContent(content)
   }
@@ -182,15 +181,15 @@ class DevsCoordinator {
   }
 
   informCoupling(){
-    for(let rel of this.__coupled__.couprels().values()){
+    for(let rel of this.__coupled__.couprels().values()) {
       // 如果连接源模型为耦合模型自身，则为外部关联（外部输入）
-      if (rel.srcModel === this.__coupled__){
+      if (rel.src === this.__coupled__) {
         this.addCouprel(rel)
       } else {
-        if ( rel.srcModel instanceof DevsAtomic) {
-          rel.srcModel.simulator().addCouprel(rel)
-        } else if ( rel.srcModel instanceof DevsCoupled) {
-          rel.srcModel.coordinator().addCouprel(rel)
+        if ( rel.src instanceof DevsAtomic) {
+          rel.src.simulator().addCouprel(rel)
+        } else if ( rel.src instanceof DevsCoupled) {
+          rel.src.coordinator().addCouprel(rel)
         }
       }
     }
@@ -200,7 +199,7 @@ class DevsCoordinator {
    * 根据耦合模型组成配置仿真器
    */
   setSimulators(){
-    for(let child of this.__coupled__.children().values()){
+    for(let child of this.__coupled__.children().values()) {
       if ( child instanceof DevsAtomic) {
         this.addSimulator(child)
       } else if ( child instanceof DevsCoupled) {
@@ -265,7 +264,7 @@ class DevsCoordinator {
         for(let rel of this.__couprels__){
           if (rel.srcPort === content.port){
             receiver.push({
-              model: rel.destModel,
+              model: rel.dest,
               content:{
                 port: rel.destPort,
                 event: content.event
@@ -289,6 +288,66 @@ class DevsCoordinator {
     }
     this.__couprels__.add(rel)
   }
+
+   /**
+   * 快照当前状态
+   */
+  snapshot(data) {
+    if (!this.__coupled__) {
+      logger.error(`DevsCoordinator::snapshot failed - model is null`)
+      return null
+    }
+
+    if(!data) {
+      let sims = []
+      for(let sim of this.__simulators__) {
+        sims.push(sim.snapshot())
+      }
+  
+      return {
+        type: 'coupled',
+        coordinator: this.toJson(),
+        model: this.__coupled__.snapshot(),
+        simulators: sims
+      }
+    } else {
+      // 初始化内部状态
+
+    }
+  }
+
+  /**
+   * 保存当前状态
+   */
+  toJson() {
+    let json = {
+      tl: this.__tl__,
+      tn: this.__tn__,
+    }
+
+    if (this.__input__) {
+      json.input = this.__input__.toJson()
+    }
+
+    if (this.__output__) {
+      json.output = this.__output__.toJson()
+    }
+    return json
+  }
+
+  /**
+   * 
+   * @param {*} json 
+   */
+  fromJson(json){
+    if (!json) {
+      return
+    }
+
+
+
+  }
+
 
 }
 

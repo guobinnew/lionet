@@ -311,13 +311,21 @@ class DevsAtomic extends DevsModel{
     }
     return Object.assign(super.dump(),
     {
-      class: this.__class__,
+      class:  this.__proto__.__classId__,
       states: states,
       current: {
         phase: this.phaseName(this.__phase__),
         sigma: this.__sigma__
-      }
+      },
+      custom: this.print()
     })
+  }
+
+  /**
+   * 
+   */
+  print() {
+    return null
   }
 
   /**
@@ -326,6 +334,7 @@ class DevsAtomic extends DevsModel{
   toJson() {
     return Object.assign(super.toJson(),
     {
+      class: this.__proto__.__classId__,
       sigma: this.__sigma__,
       phase: this.__phase__ 
     })
@@ -336,6 +345,12 @@ class DevsAtomic extends DevsModel{
    * @param {*} json 
    */
   fromJson(json){
+
+    if (json.class !== this.__proto__.__classId__) {
+      logger.error(`DevsAtomic::fromJson failed - json.class is invalid, expectd to be ${this.__proto__.__classId__}`)
+      return
+    }
+
     super.fromJson(json)
     this.__sigma__ = +json.sigma
     this.__phase__ = +json.phase
@@ -347,15 +362,27 @@ class DevsAtomic extends DevsModel{
    */
   snapshot(data) {
     if (!data) {
-      return {
-        __class__: this.className(),
-        __base__: this.toJson()
-      }
+      return Object.assign(this.toJson(), {
+        custom: this.clone()
+      })
     } else {
-      this.fromJson(data['__base__'])
+      this.fromJson(data)
+      this.clone(data.custom)
+    }
+  }
+
+  /**
+   * 自定义属性克隆
+   * @param {*} data 
+   */
+  clone(data) {
+    if (!data) {
+      return null
     }
   }
 
 }
+
+DevsAtomic.prototype.__classId__ = 'DevsAtomic'
 
 export default DevsAtomic

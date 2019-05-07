@@ -1,4 +1,6 @@
 import DevsModel from './model'
+import DevsAtomic from './atomic'
+import DevsCoupled from './coupled'
 import utils from './utils'
 import logger from './logger'
 
@@ -6,7 +8,7 @@ const atomicReg = new Map()
 const DevsModelRegister = {
   register: function(proto){
     if (proto && utils.common.isSubclass(DevsModel, proto)) {
-      atomicReg.set(proto.name,
+      atomicReg.set(proto.prototype.__classId__,
         function(name, config){
           return new proto.prototype.constructor(name, config)
         }
@@ -32,6 +34,9 @@ const DevsModelRegister = {
     return null
   }
 }
+
+DevsModelRegister.register(DevsAtomic)
+DevsModelRegister.register(DevsCoupled)
 
 export default DevsModelRegister
 

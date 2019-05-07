@@ -141,19 +141,26 @@ class DevsAtomicSimulator {
   /**
    * 快照当前状态
    */
-  snapshot() {
+  snapshot(data) {
     if (!this.__owner__) {
       logger.error(`DevsAtomicSimulator::snapshot failed - model is null`)
       return null
     }
 
-    let json = {
-      type: 'atomic',
-      simulator: this.toJson(),
-      model: this.__owner__.snapshot()
+    if (!data) {
+      return {
+        type: 'atomic',
+        simulator: this.toJson(),
+        model: this.__owner__.snapshot()
+      }
+    } else {
+      if (data.type !== 'atomic') {
+        logger.error(`DevsAtomicSimulator::snapshot failed - data format is invalid`)
+        return
+      }
+      this.fromJson(data.simulator)
+      this.__owner__.snapshot(data.model)
     }
-
-    return json
   }
 
   /**

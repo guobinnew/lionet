@@ -1,6 +1,6 @@
-//import Lionet from '../dist/js/index'
+import Lionet from '../dist/js/index'
+//import Lionet from '../index'
 
-import Lionet from '../index'
 class Simple extends Lionet.Atomic {
   constructor(name, config) {
     super(name)
@@ -20,13 +20,6 @@ class Simple extends Lionet.Atomic {
     })
   }
 
-    /**
-   * 获取类名(必须手动设置，防止代码压缩后类名被修改)
-   */
-  className() {
-    return 'Simple' //this.__proto__.constructor.name
-  }
-
   // 初始化（由仿真器调用）
   initialize(json) {
     super.initialize(json)
@@ -42,7 +35,7 @@ class Simple extends Lionet.Atomic {
     if (msg) {
       for (let content of msg.contents()) {
         if (content.port === 'in') {
-          console.log('receiving event: ' + content.event.toJson())
+          console.log('receiving event: ' + JSON.stringify(content.event.toJson()))
         }
       }
     }
@@ -64,34 +57,30 @@ class Simple extends Lionet.Atomic {
   }
 
   // 打印输出
-  dump() {
-    return Object.assign(super.dump(),
-    {
-      custom: {
-        step: this.__step__,
-        msgid: this.__msgid__ 
-      }
-    })
+  print() {
+    return{
+      step: this.__step__,
+      msgid: this.__msgid__ 
+    }
   }
 
   // 保存/加载快照
-  snapshot(data) {
+  clone(data) {
     if (!data) {
-      return Object.assign(super.snapshot(),
-      {
-        step: this.__step__,
-        msgid: this.__msgid__ 
-      })
+      return this.print()
     } else {
-      super.snapshot(data)
       this.__step__ = +data.step
       this.__msgid__ = +data.msgid
     }
   }
-
 }
 
+/**
+ * 必须定义类标示
+ */
+Simple.prototype.__classId__ = 'Simple'
 Lionet.Register.register(Simple)
+
 
 /**
  * 
@@ -114,7 +103,6 @@ function testSingleAtomic(step = 10, snapshot = null) {
         step: 1000
       }
     })
-
     simulator = new Lionet.AtomicSimulator(root)
     simulator.initialize()
     console.log(`init: tL: ${simulator.tl()} tN: ${simulator.tn()}`)
@@ -134,35 +122,42 @@ function testSingleAtomic(step = 10, snapshot = null) {
   return simulator.snapshot()
 }
 
-function testSingleCoupled(step = 10) {
-  let root = new Lionet.Coupled({
-    name: 'c1'
-  })
-  let m1 = new Simple({
-    name: 'm1',
-    step: 1000
-  })
+function testSingleCoupled(step = 10, snapshot = null) {
+  let coordinator = null
 
-  root.add(m1)
-  root.addCouprel({
-    model: 'c1',
-    port: 'i_in',
-  }, {
-    model: 'm1',
-    port: 'in'
-  })
+  if (snapshot) {
 
-  root.addCouprel({
-    model: 'm1',
-    port: 'out',
-  }, {
-    model: 'c1',
-    port: 'o_out'
-  })
+  } else {
+    let root = new Lionet.Coupled('c1')
+    let m1 = Lionet.Register.create('Simple', {
+      name: 'm1',
+      config: {
+        step: 1000
+      }
+    })
 
-  let coordinator = new Lionet.CoupledCoordinator(root)
-  coordinator.initialize()
-  console.log(`init: tL: ${coordinator.tl()} tN: ${coordinator.tn()}`)
+    root.prepare({
+      children: [m1],
+      links: [
+        {
+          src: 'c1',
+          srcPort: 'i_in',
+          dest: 'm1',
+          destPort: 'in'
+        },
+        {
+          src: 'm1',
+          srcPort: 'out',
+          dest: 'c1',
+          destPort: 'o_out'
+        }
+      ]
+    })
+    coordinator = new Lionet.CoupledCoordinator(root)
+    coordinator.initialize()
+    console.log(`init: tL: ${coordinator.tl()} tN: ${coordinator.tn()}`)
+  }
+
   while (step > 0) {
     coordinator.simulate(1)
     step--
@@ -172,13 +167,165 @@ function testSingleCoupled(step = 10) {
     }
     console.log(`tL: ${coordinator.tl()} tN: ${coordinator.tn()}`)
   }
+
+  return coordinator.snapshot()
 }
 
+function testTwoCoupled(step = 20, snapshot = null) {
+  let coordinator = null
 
-let snapshot = testSingleAtomic()
-console.log(JSON.stringify(snapshot))
+  if (snapshot) {
 
-snapshot = testSingleAtomic(10, snapshot)
-console.log(JSON.stringify(snapshot))
+  } else {
+    let root = new Lionet.Coupled('c1')
+    let m1 = Lionet.Register.create('Simple', {
+      name: 'm1',
+      config: {
+        step: 1000
+      }
+    })
 
-//testSingleCoupled()
+    let m2 = Lionet.Register.create('Simple', {
+      name: 'm2',
+      config: {
+        step: 500
+      }
+    })
+    
+    root.prepare({
+      children: [m1, m2],
+      links: [
+        {
+          src: 'c1',
+          srcPort: 'i_in',
+          dest: 'm1',
+          destPort: 'in'
+        },
+        {
+          src: 'm1',
+          srcPort: 'out',
+          dest: 'm2',
+          destPort: 'in'
+        },
+        {
+          src: 'm2',
+          srcPort: 'out',
+          dest: 'c1',
+          destPort: 'o_out'
+        }
+      ]
+    })
+    coordinator = new Lionet.CoupledCoordinator(root)
+    coordinator.initialize()
+    console.log(`init: tL: ${coordinator.tl()} tN: ${coordinator.tn()}`)
+  }
+
+  while (step > 0) {
+    coordinator.simulate(1)
+    step--
+    let output = coordinator.output()
+    if (output) {
+      console.log(`output: ${JSON.stringify(output.toJson())}`)
+    }
+    console.log(`tL: ${coordinator.tl()} tN: ${coordinator.tn()}`)
+  }
+
+  return coordinator.snapshot()
+}
+
+function testDeepCoupled(step = 20, snapshot = null) {
+  let coordinator = null
+
+  if (snapshot) {
+
+  } else {
+    let m1 = Lionet.Register.create('Simple', {
+      name: 'm1',
+      config: {
+        step: 1000
+      }
+    })
+
+    let m2 = Lionet.Register.create('Simple', {
+      name: 'm2',
+      config: {
+        step: 500
+      }
+    })
+
+    let c2 = new Lionet.Coupled('c2')
+    c2.prepare({
+      children: [m1, m2],
+      links: [
+        {
+          src: 'c2',
+          srcPort: 'i_in',
+          dest: 'm1',
+          destPort: 'in'
+        },
+        {
+          src: 'm1',
+          srcPort: 'out',
+          dest: 'm2',
+          destPort: 'in'
+        },
+        {
+          src: 'm2',
+          srcPort: 'out',
+          dest: 'c2',
+          destPort: 'o_out'
+        }
+      ]
+    })
+    
+    let root = new Lionet.Coupled('c1')
+    root.prepare({
+      children: [c2],
+      links: [
+        {
+          src: 'c1',
+          srcPort: 'i_in',
+          dest: 'c2',
+          destPort: 'i_in'
+        },
+        {
+          src: 'c2',
+          srcPort: 'i_out',
+          dest: 'c1',
+          destPort: 'i_out'
+        }
+      ]
+    })
+    coordinator = new Lionet.CoupledCoordinator(root)
+    coordinator.initialize()
+    console.log(`init: tL: ${coordinator.tl()} tN: ${coordinator.tn()}`)
+  }
+
+  while (step > 0) {
+    coordinator.simulate(1)
+    step--
+    let output = coordinator.output()
+    if (output) {
+      console.log(`output: ${JSON.stringify(output.toJson())}`)
+    }
+    console.log(`tL: ${coordinator.tl()} tN: ${coordinator.tn()}`)
+  }
+
+  return coordinator.snapshot()
+}
+
+let snapshot = null
+
+ snapshot = testSingleAtomic()
+ console.log(JSON.stringify(snapshot))
+
+ snapshot = testSingleAtomic(10, snapshot)
+ console.log(JSON.stringify(snapshot))
+
+// snapshot = testSingleCoupled()
+// console.log(JSON.stringify(snapshot))
+
+//testTwoCoupled()
+
+//snapshot = testDeepCoupled()
+//console.log(JSON.stringify(snapshot))
