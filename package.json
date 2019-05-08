@@ -1,12 +1,13 @@
 {
   "name": "orion-lionet",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "based-component state machine engine， suitable for games and simulation",
   "main": "dist/js/index.js",
   "scripts": {
     "build": "./node_modules/.bin/gulp",
     "bundle": "./node_modules/.bin/webpack --config ./build/webpack.config.js",
-    "test": "./node_modules/.bin/babel-node ./test/simple.js"
+    "test": "./node_modules/.bin/babel-node ./test/simple.js",
+    "mocha": "./node_modules/.bin/mocha --require @babel/register test/test_*.js"
   },
   "dependencies": {
     "blob-util": "^2.0.2",
@@ -18,13 +19,16 @@
     "@babel/core": "^7.2.2",
     "@babel/node": "^7.2.2",
     "@babel/preset-env": "^7.3.1",
+    "@babel/register": "^7.4.4",
     "babel-loader": "^8.0.5",
     "browserify": "^16.2.3",
+    "chai": "^4.2.0",
     "gulp": "^4.0.0",
     "gulp-babel": "^8.0.0",
     "gulp-concat": "^2.6.1",
     "gulp-rename": "^1.4.0",
     "gulp-uglify": "^3.0.1",
+    "mocha": "^6.1.4",
     "vinyl-source-stream": "^2.0.0",
     "webpack": "^4.19.0",
     "webpack-cli": "^3.2.1"

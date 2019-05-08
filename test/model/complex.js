@@ -1,86 +1,21 @@
-//import Lionet from '../dist/js/index'
+import { assert, expect, should } from 'chai'
 import Lionet from '../index'
-
-class Simple extends Lionet.Atomic {
-  constructor(name, config) {
-    super(name)
-    if (config) {
-      this.__msgid__ = config.msgid ? +config.msgid : 0
-      this.__step__ = +config.step
-    } else {
-      this.__msgid__ =  0
-      this.__step__ = 1000
-    }
-
-    this.prepare({
-      ports: [
-        { name: 'in', orientation: 'in'},
-        { name: 'out', orientation: 'out'}
-      ]
-    })
-  }
-
-  // 初始化（由仿真器调用）
-  initialize(json) {
-    super.initialize(json)
-    if (json) {
-
-    } else {
-      this.holdIn(Lionet.Utils.devs.state.Passive, this.__step__)
-    }
-  }
-
-  // 外部变迁（delta为相对时间）
-  deltext(delta, msg) {
-    if (msg) {
-      for (let content of msg.contents()) {
-        if (content.port === 'in') {
-          console.log('receiving event: ' + JSON.stringify(content.event.toJson()))
-        }
-      }
-    }
-    this.resume(delta)
-  }
-
-  // 内部状态变迁（仅发生在tN时刻）
-  deltint() {
-    this.holdIn(Lionet.Utils.devs.state.Passive, this.__step__)
-  }
-
-  // 输出（仅发生在tN时刻）
-  output() {
-    let msg = new Lionet.Message()
-    let evt = new Lionet.Event()
-    evt.setParam('Number', this.__msgid__++)
-    msg.setContent('out', evt)
-    return msg
-  }
-
-  // 打印输出
-  print() {
-    return{
-      step: this.__step__,
-      msgid: this.__msgid__ 
-    }
-  }
-
-  // 保存/加载快照
-  clone(data) {
-    if (!data) {
-      return this.print()
-    } else {
-      this.__step__ = +data.step
-      this.__msgid__ = +data.msgid
-    }
-  }
-}
+import Simple from './model/simple'
 
 /**
- * 必须定义类标示
+ * 
  */
-Simple.prototype.__classId__ = 'Simple'
-Lionet.Register.register(Simple)
-
+function createSingleAtomic(name, step = 1000) {
+  let root = Lionet.Register.create('Simple', {
+    name: name,
+    config: {
+      step: step
+    }
+  })
+  simulator = new Lionet.AtomicSimulator(root)
+  simulator.initialize()
+  return simulator
+}
 
 /**
  * 
@@ -89,7 +24,6 @@ Lionet.Register.register(Simple)
  */
 function testSingleAtomic(step = 10, snapshot = null) {
   let simulator = null
-
   if (snapshot) {
     simulator = Lionet.Spawn.spawn(snapshot)
     if (!simulator) {
@@ -97,14 +31,7 @@ function testSingleAtomic(step = 10, snapshot = null) {
       return
     }
   } else {
-    let root = Lionet.Register.create('Simple', {
-      name: 'm1',
-      config: {
-        step: 1000
-      }
-    })
-    simulator = new Lionet.AtomicSimulator(root)
-    simulator.initialize()
+    simulator = createSingleAtomic('m1')
     console.log(`init: tL: ${simulator.tl()} tN: ${simulator.tn()}`)
   }
 
@@ -121,6 +48,21 @@ function testSingleAtomic(step = 10, snapshot = null) {
   // snapshot
   return simulator.snapshot()
 }
+
+
+describe('Atomic Simulation', function() {
+  describe('#single model', function() {
+      it('should return -1 when the value is not present', function() {
+        let simulator = createSingleAtomic('m1')
+        console.log(`init: tL: ${simulator.tl()} tN: ${simulator.tn()}`)
+
+        let snapshot = testSingleAtomic(1)
+        console.log(JSON.stringify(snapshot))
+        assert.equal(-1, snapshot))
+      })
+  })
+})
+
 
 function testSingleCoupled(step = 10, snapshot = null) {
   let coordinator = null
@@ -336,3 +278,5 @@ console.log(JSON.stringify(snapshot))
 
 snapshot = testDeepCoupled(20, snapshot)
 console.log(JSON.stringify(snapshot))
+
+

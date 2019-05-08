@@ -80,5 +80,9 @@ class Simple extends Lionet.Atomic {
 ### Demo
 
 
+## TODO
+- 增加状态修改接口，由仿真器传递到各个Atomic模型中
+- 增加与决策引擎联通接口，仿真引擎修改黑板，决策引擎生产决策Action
 
 ## Release Notes
+v1.1  实现引擎克隆接口
