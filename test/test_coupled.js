@@ -1,6 +1,7 @@
 import { assert, expect, should } from 'chai'
 import Lionet from '../index'
 import Simple from './model/simple'
+import Vehicle from './model/vehicle'
 
 /**
  * 
@@ -30,7 +31,7 @@ function createSingleCoupled() {
       }
     ]
   })
-  coordinator = new Lionet.CoupledCoordinator(root)
+  let coordinator = new Lionet.CoupledCoordinator(root)
   coordinator.initialize()
   return coordinator
 }
@@ -77,7 +78,7 @@ function createTwoCoupled() {
         }
       ]
   })
-  coordinator = new Lionet.CoupledCoordinator(root)
+  let coordinator = new Lionet.CoupledCoordinator(root)
   coordinator.initialize()
   return coordinator
 }
@@ -86,6 +87,7 @@ function createTwoCoupled() {
  * 
  */
 function createDeepCoupled() {
+  let child
   let m1 = Lionet.Register.create('Simple', {
     name: 'm1',
     config: {
@@ -143,7 +145,53 @@ function createDeepCoupled() {
         }
       ]
   })
-  coordinator = new Lionet.CoupledCoordinator(root)
+  let coordinator = new Lionet.CoupledCoordinator(root)
+  coordinator.initialize()
+  return coordinator
+}
+
+/**
+ * 
+ */
+function createHugeCoupled() {
+  let root = new Lionet.Coupled('c1')
+
+  if (!Lionet.Register.has('Vehicle')) {
+    console.log('Vehicle model is unregistered')
+    return null
+  }
+
+  let children = []
+  let links = []
+  for(let i=0; i<50000; i++) {
+    let name = `m${i}`
+    let c = Lionet.Register.create('Vehicle', {
+      name: name,
+      config: {
+        step: 1000
+      }
+    })
+
+    children.push(c)
+    links.push({
+      src: 'c1',
+      srcPort: 'i_in',
+      dest: name,
+      destPort: 'in'
+    })
+    links.push({
+      src: name,
+      srcPort: 'out',
+      dest: 'c1',
+      destPort: 'o_out'
+    })
+  }
+  
+  root.prepare({
+    children: children,
+    links: links
+  })
+  let coordinator = new Lionet.CoupledCoordinator(root)
   coordinator.initialize()
   return coordinator
 }
@@ -163,11 +211,60 @@ describe('测试耦合模型', function() {
   })
 })
 
-describe('测试单耦合仿真器', function() {
+describe('测试耦合仿真器', function() {
   let coordinator = null
-  describe('测试单耦合仿真器', function() {
+  describe('#单耦合仿真器', function() {
     before(function(){
       coordinator = createSingleCoupled()
+    })
+    it('name should be c1', function() {
+      assert.equal('c1', coordinator.coupled().name())
+    })
+    it('children.size should be 1', function() {
+      assert.equal(1, coordinator.coupled().children().size)
+    })
+  })
+
+  describe('#双耦合仿真器', function() {
+    before(function(){
+      coordinator = createTwoCoupled()
+    })
+    it('name should be c1', function() {
+      assert.equal('c1', coordinator.coupled().name())
+    })
+    it('children.size should be 1', function() {
+      assert.equal(2, coordinator.coupled().children().size)
+    })
+  })
+
+  describe('#多层耦合仿真器', function() {
+    before(function(){
+      coordinator = createDeepCoupled()
+    })
+    it('name should be c1', function() {
+      assert.equal('c1', coordinator.coupled().name())
+    })
+    it('children.size should be 1', function() {
+      assert.equal(1, coordinator.coupled().children().size)
+    })
+  })
+
+  describe('#容量测试', function() {
+    before(function(){
+      coordinator = createHugeCoupled()
+      assert.typeOf(coordinator, 'object')
+    })
+    it('name should be c1', function() {
+      assert.equal('c1', coordinator.coupled().name())
+    })
+    it('children.size should be 1', function() {
+      assert.equal(50000, coordinator.coupled().children().size)
+    })
+    it('running', function() {
+      console.time()
+      coordinator.simulate(100)
+      console.timeEnd()
+      assert.equal(100000, coordinator.tl())
     })
   })
 })

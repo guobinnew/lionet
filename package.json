@@ -7,7 +7,7 @@
     "build": "./node_modules/.bin/gulp",
     "bundle": "./node_modules/.bin/webpack --config ./build/webpack.config.js",
     "test": "./node_modules/.bin/babel-node ./test/simple.js",
-    "mocha": "./node_modules/.bin/mocha --require @babel/register test/test_*.js"
+    "mocha": "./node_modules/.bin/mocha --timeout 60000 --require @babel/register test/test_*.js"
   },
   "dependencies": {
     "blob-util": "^2.0.2",
@@ -28,7 +28,7 @@
     "gulp-concat": "^2.6.1",
     "gulp-rename": "^1.4.0",
     "gulp-uglify": "^3.0.1",
-    "mocha": "^6.1.4",
+    "mocha": "^6.2.2",
     "vinyl-source-stream": "^2.0.0",
     "webpack": "^4.19.0",
     "webpack-cli": "^3.2.1"

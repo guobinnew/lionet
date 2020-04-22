@@ -21,6 +21,10 @@ const DevsModelRegister = {
   proto: function(name){
     return atomicReg.get(name)
   },
+  has: function(name) {
+    let ctor = atomicReg.get(name)
+    return ctor != null
+  },
   create: function(name, option) {
     let ctor = atomicReg.get(name)
     if (ctor) {
