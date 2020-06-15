@@ -1,5 +1,5 @@
 import { assert, expect, should } from 'chai'
-import Lionet from '../index'
+import Lionet from '../dist/js/index'
 import Simple from './model/simple'
 import Vehicle from './model/vehicle'
 

@@ -1,4 +1,4 @@
-import Lionet from '../../index'
+import Lionet from '../../dist/js/index'
 
 class Simple extends Lionet.Atomic {
   constructor(name, config) {

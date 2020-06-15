@@ -1,4 +1,4 @@
-import Lionet from '../../index'
+import Lionet from '../../dist/js/index'
 
 class Vehicle extends Lionet.Atomic {
   constructor(name, config) {

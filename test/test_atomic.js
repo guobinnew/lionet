@@ -1,5 +1,6 @@
 import { assert, expect, should } from 'chai'
-import Lionet from '../index'
+//import Lionet from '../index'
+import Lionet from '../dist/js/index'
 import Simple from './model/simple'
 
 /**
@@ -12,9 +13,9 @@ function createSingleAtomic(name, step = 1000) {
       step: step
     }
   })
-  let simulator = new Lionet.AtomicSimulator(root)
-  simulator.initialize()
-  return simulator
+  let simu = new Lionet.AtomicSimulator(root)
+  simu.initialize()
+  return simu
 }
 
 describe('测试原子模型', function() {
@@ -33,12 +34,9 @@ describe('测试原子模型', function() {
   })
 })
 
-describe('测试原子仿真器', function() {
-  let simulator = null
-  before(function(){
-    simulator = createSingleAtomic('m1')
-  })
+let simulator = createSingleAtomic('m1')
 
+describe('测试原子仿真器', function() {
   describe('#初始化', function() {
     it('tl should be 0', function() {
       assert.equal(0, simulator.tl())
